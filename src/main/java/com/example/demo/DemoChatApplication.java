@@ -34,6 +34,16 @@ public class DemoChatApplication {
 		SpringApplication.run(DemoChatApplication.class, args);
 	}
 
+	@GetMapping("/dummy")
+	public Response dummy(@RequestParam String request, int delay) throws InterruptedException {
+        log.info("/dummy {}", request);
+        if (delay > 0) {
+            Thread.sleep(delay);
+        }
+
+        return new Response("Response: " + request);
+    }
+
 	@PostMapping("/user/add")
 	@ResponseBody
 	public Response addUser(@RequestBody UserAddRequest request) throws InterruptedException {
