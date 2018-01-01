@@ -94,10 +94,6 @@ public class DemoChatApplication {
 		return result;
 	}
 
-	private void initDB() {
-
-	}
-
 	@Bean
 	public JdbcTemplate jdbc() {
 		return new JdbcTemplate(ds());

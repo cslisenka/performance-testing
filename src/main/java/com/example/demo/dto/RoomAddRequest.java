@@ -11,4 +11,11 @@ public class RoomAddRequest extends Request {
     public void setName(String name) {
         this.name = name;
     }
+
+    @Override
+    public String toString() {
+        return "{" +
+                "name='" + name + '\'' +
+                '}';
+    }
 }

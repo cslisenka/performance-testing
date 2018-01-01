@@ -1,13 +1,15 @@
 CREATE TABLE IF NOT EXISTS `rooms` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(45) COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`,`name`)
+  PRIMARY KEY (`id`,`name`),
+  UNIQUE KEY `name_UNIQUE` (`name`)
 );
 
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `login` varchar(45) COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`,`login`)
+  PRIMARY KEY (`id`,`login`),
+  UNIQUE KEY `login_UNIQUE` (`login`)
 );
 
 CREATE TABLE IF NOT EXISTS `messages` (
