@@ -34,14 +34,29 @@ public class DemoChatApplication {
 		SpringApplication.run(DemoChatApplication.class, args);
 	}
 
-	@GetMapping("/dummy")
-	public Response dummy(@RequestParam String request, int delay) throws InterruptedException {
-        log.info("/dummy {}", request);
+    @GetMapping("/dummy")
+    public Response dummyPost(@RequestParam String request, @RequestParam int delay) throws InterruptedException {
+        log.debug("/dummy {}", request);
         if (delay > 0) {
             Thread.sleep(delay);
         }
 
         return new Response("Response: " + request);
+    }
+
+	@PostMapping("/dummy")
+	public Response dummy(@RequestBody String request, @RequestParam int delay, @RequestParam int responseSize) throws InterruptedException {
+        log.debug("/dummy {}", request);
+        if (delay > 0) {
+            Thread.sleep(delay);
+        }
+
+        StringBuilder response = new StringBuilder();
+        for (int i = 0; i < responseSize; i++) {
+        	response.append(request);
+		}
+
+        return new Response("Response: " + response.toString());
     }
 
 	@PostMapping("/user/add")
