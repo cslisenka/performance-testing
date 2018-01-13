@@ -113,7 +113,7 @@ public class DemoChatApplication {
 	public DataSource ds() {
 		MysqlDataSource ds = new MysqlDataSource();
 		ds.setCreateDatabaseIfNotExist(true);
-		ds.setDatabaseName("performance-testing");
+		ds.setDatabaseName("performance");
 		ds.setUser("root");
 		ds.setPassword("root");
 		return ds;
