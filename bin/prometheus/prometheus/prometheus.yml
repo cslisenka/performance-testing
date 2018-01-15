@@ -63,7 +63,7 @@ scrape_configs:
       port: 9100
     
     static_configs:
-         - targets: ['node-exporter:9100', '52.15.132.191:5530', '18.218.65.204:9100', '18.218.65.204:5530']
+         - targets: ['52.15.132.191:9100', '18.218.65.204:9100']
 
   - job_name: 'jmx-exporter'
 
