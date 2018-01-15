@@ -28,3 +28,4 @@ target
 *.iml
 *.log*
 test-executions
+1nohup.out
