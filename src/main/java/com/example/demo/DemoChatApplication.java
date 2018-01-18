@@ -160,7 +160,7 @@ public class DemoChatApplication {
 	}
 
     @Bean
-    public DataSource ds(@Value("${max.pool.size}") int maxPoolSize) {
+    public DataSource ds(@Value("${max.pool.size:10}") int maxPoolSize) {
         MysqlDataSource ds = new MysqlDataSource();
         ds.setAutoReconnect(true);
         ds.setCreateDatabaseIfNotExist(true);
