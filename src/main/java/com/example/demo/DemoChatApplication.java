@@ -72,18 +72,31 @@ public class DemoChatApplication {
 		return new Response("User created: " + request.getLogin());
 	}
 
+	@GetMapping("/user")
+    @ResponseBody
+	public List<User> getUsers(int limit) {
+        log.info("/user");
+        return jdbc.query("SELECT *  FROM users " +
+            "LIMIT ?", new BeanPropertyRowMapper(User.class), limit);
+    }
+
 	@PostMapping("/room/add")
 	@ResponseBody
 	public Response addRoom(@RequestBody RoomAddRequest request) throws InterruptedException {
 		log.info("/room/add {}", request);
-		if (request.getDelay() > 0) {
-			Thread.sleep(request.getDelay());
-		}
 
 		jdbc.update("INSERT INTO rooms (name) VALUES (?)", request.getName());
 
 		return new Response("Room created: " + request.getName());
 	}
+
+    @GetMapping("/room")
+    @ResponseBody
+    public List<Room> getRooms(int limit) {
+        log.info("/user");
+        return jdbc.query("SELECT *  FROM rooms " +
+                "LIMIT ?", new BeanPropertyRowMapper(Room.class), limit);
+    }
 
 	@PostMapping("/message/add")
 	@ResponseBody
@@ -103,11 +116,8 @@ public class DemoChatApplication {
 
 	@GetMapping("/message/get")
 	@ResponseBody
-	public List<Message> getMessages(@RequestParam String room, @RequestParam int limit, @RequestParam int delay) throws InterruptedException {
-		log.info("/message/get room={} limit={} delay={}", room, limit, delay);
-		if (delay > 0) {
-			Thread.sleep(delay);
-		}
+	public List<Message> getMessages(@RequestParam String room, @RequestParam int limit) throws InterruptedException {
+		log.info("/message/get room={} limit={}", room, limit);
 
 		List<Message> result = jdbc.query("SELECT m.text AS text, m.time AS time, r.name AS room, u.login AS user FROM messages m " +
 			"INNER JOIN rooms r ON m.room_id = r.id " +
@@ -115,6 +125,20 @@ public class DemoChatApplication {
 			"WHERE r.name=? " +
 			"ORDER BY m.time DESC " +
 			"LIMIT ?", new BeanPropertyRowMapper(Message.class), room, limit);
+
+		return result;
+	}
+
+	@GetMapping("/message/last/get")
+	@ResponseBody
+	public List<Message> getLastMessages(@RequestParam int limit) throws InterruptedException {
+		log.info("/message/get limit={}", limit);
+
+		List<Message> result = jdbc.query("SELECT m.text AS text, m.time AS time, r.name AS room, u.login AS user FROM messages m " +
+				"INNER JOIN rooms r ON m.room_id = r.id " +
+				"INNER JOIN users u ON m.user_id = u.id " +
+				"ORDER BY m.time DESC " +
+				"LIMIT ?", new BeanPropertyRowMapper(Message.class), limit);
 
 		return result;
 	}
@@ -127,6 +151,7 @@ public class DemoChatApplication {
 	@Bean
 	public DataSource ds() {
 		MysqlDataSource ds = new MysqlDataSource();
+		ds.setAutoReconnect(true);
 		ds.setCreateDatabaseIfNotExist(true);
 		ds.setDatabaseName("performance");
 		ds.setUser("root");
