@@ -2,22 +2,27 @@ package com.example.demo;
 
 import com.example.demo.dto.*;
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import de.codecentric.boot.admin.config.EnableAdminServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.web.bind.annotation.*;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 
 @EnableAdminServer
 @SpringBootApplication
@@ -67,7 +72,12 @@ public class DemoChatApplication {
 			Thread.sleep(request.getDelay());
 		}
 
-		jdbc.update("INSERT INTO users (login) VALUES (?)", request.getLogin());
+//		jdbc.update("INSERT INTO users (login) VALUES (?)", request.getLogin());
+		jdbc.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO users (login) VALUES (?)");
+            ps.setString(1, request.getLogin());
+            return ps;
+        });
 
 		return new Response("User created: " + request.getLogin());
 	}
@@ -143,19 +153,38 @@ public class DemoChatApplication {
 		return result;
 	}
 
+	@Autowired
 	@Bean
-	public JdbcTemplate jdbc() {
-		return new JdbcTemplate(ds());
+	public JdbcTemplate jdbc(DataSource ds) {
+		return new JdbcTemplate(ds);
 	}
 
-	@Bean
-	public DataSource ds() {
-		MysqlDataSource ds = new MysqlDataSource();
-		ds.setAutoReconnect(true);
-		ds.setCreateDatabaseIfNotExist(true);
-		ds.setDatabaseName("performance");
-		ds.setUser("root");
-		ds.setPassword("root");
-		return ds;
-	}
+    @Bean
+    public DataSource ds(@Value("${max.pool.size}") int maxPoolSize) {
+        MysqlDataSource ds = new MysqlDataSource();
+        ds.setAutoReconnect(true);
+        ds.setCreateDatabaseIfNotExist(true);
+        ds.setDatabaseName("performance");
+        ds.setUser("root");
+        ds.setPassword("root");
+
+        HikariConfig config = new HikariConfig();
+        config.setDataSource(ds);
+        config.setConnectionTimeout(10_000);
+        config.setMaximumPoolSize(maxPoolSize);
+        config.setPoolName("hikari");
+
+        return new HikariDataSource(config);
+    }
+
+//	@Bean
+//	public DataSource ds() {
+//		MysqlDataSource ds = new MysqlDataSource();
+//		ds.setAutoReconnect(true);
+//		ds.setCreateDatabaseIfNotExist(true);
+//		ds.setDatabaseName("performance");
+//		ds.setUser("root");
+//		ds.setPassword("root");
+//		return ds;
+//	}
 }

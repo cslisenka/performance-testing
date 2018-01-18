@@ -21,9 +21,11 @@ CREATE TABLE IF NOT EXISTS `messages` (
   PRIMARY KEY (`id`),
   KEY `user_id_idx` (`user_id`),
   KEY `room_id_idx` (`room_id`),
+  KEY `timestamp` (`room_id`,`time`),
   CONSTRAINT `room_id` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
+
 
 DELETE FROM messages WHERE 1=1;
 DELETE FROM rooms WHERE 1=1;
