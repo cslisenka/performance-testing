@@ -130,8 +130,8 @@ public class DemoChatApplication {
 		log.info("/message/get room={} limit={}", room, limit);
 
 		List<Message> result = jdbc.query("SELECT m.text AS text, m.time AS time, r.name AS room, u.login AS user FROM messages m " +
-			"INNER JOIN rooms r ON m.room_id = r.id " +
-			"INNER JOIN users u ON m.user_id = u.id " +
+			"LEFT JOIN rooms r ON m.room_id = r.id " +
+			"LEFT JOIN users u ON m.user_id = u.id " +
 			"WHERE r.name=? " +
 			"ORDER BY m.time DESC " +
 			"LIMIT ?", new BeanPropertyRowMapper(Message.class), room, limit);
@@ -145,8 +145,8 @@ public class DemoChatApplication {
 		log.info("/message/get limit={}", limit);
 
 		List<Message> result = jdbc.query("SELECT m.text AS text, m.time AS time, r.name AS room, u.login AS user FROM messages m " +
-				"INNER JOIN rooms r ON m.room_id = r.id " +
-				"INNER JOIN users u ON m.user_id = u.id " +
+				"LEFT JOIN rooms r ON m.room_id = r.id " +
+				"LEFT JOIN users u ON m.user_id = u.id " +
 				"ORDER BY m.time DESC " +
 				"LIMIT ?", new BeanPropertyRowMapper(Message.class), limit);
 
