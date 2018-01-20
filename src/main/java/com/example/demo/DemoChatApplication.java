@@ -13,11 +13,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpSession;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -35,26 +37,46 @@ public class DemoChatApplication {
 	@Autowired
 	private JdbcTemplate jdbc;
 
+	@Autowired
+	private HttpSession session;
+
 	public static void main(String[] args) {
 		SpringApplication.run(DemoChatApplication.class, args);
 	}
 
-    @GetMapping("/dummy")
-    public Response dummyPost(@RequestParam String request, @RequestParam int delay) throws InterruptedException {
-        log.debug("/dummy {}", request);
+	@GetMapping("/login")
+	public Response login() {
+	    session.setAttribute("login", "true");
+	    return new Response("OK (sessionId=" + session.getId() + ")");
+    }
+
+    private void handleAuthentication() {
+        if (session.getAttribute("login") == null) {
+            throw new RuntimeException("Not authenticated");
+        }
+    }
+
+    private void handleDelay(int delay) throws InterruptedException {
         if (delay > 0) {
             Thread.sleep(delay);
         }
+    }
 
-        return new Response("Response: " + request);
+    @GetMapping("/dummy")
+    public Response dummyGet(@RequestParam String request, @RequestParam int delay) throws InterruptedException {
+        handleAuthentication();
+
+        log.debug("/dummy {}", request);
+        handleDelay(delay);
+        return new Response("Response: " + request);// + " (" + session.getId() + ", " + session.getCreationTime() + ")");
     }
 
 	@PostMapping("/dummy")
-	public Response dummy(@RequestBody String request, @RequestParam int delay, @RequestParam int responseSize) throws InterruptedException {
+	public Response dummyPost(@RequestBody String request, @RequestParam int delay, @RequestParam int responseSize) throws InterruptedException {
+        handleAuthentication();
+
         log.debug("/dummy {}", request);
-        if (delay > 0) {
-            Thread.sleep(delay);
-        }
+        handleDelay(delay);
 
         StringBuilder response = new StringBuilder();
         for (int i = 0; i < responseSize; i++) {
@@ -68,10 +90,9 @@ public class DemoChatApplication {
 	@ResponseBody
 	public Response addUser(@RequestBody UserAddRequest request) throws InterruptedException {
 		log.info("/user/add {}", request);
-		if (request.getDelay() > 0) {
-			Thread.sleep(request.getDelay());
-		}
+		handleDelay(request.getDelay());
 
+		// Experiment with forced creation of prepared statement
 //		jdbc.update("INSERT INTO users (login) VALUES (?)", request.getLogin());
 		jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement("INSERT INTO users (login) VALUES (?)");
@@ -85,6 +106,8 @@ public class DemoChatApplication {
 	@GetMapping("/user")
     @ResponseBody
 	public List<User> getUsers(int limit) {
+//	    handleAuthentication();
+
         log.info("/user");
         return jdbc.query("SELECT *  FROM users " +
             "LIMIT ?", new BeanPropertyRowMapper(User.class), limit);
@@ -93,17 +116,41 @@ public class DemoChatApplication {
 	@PostMapping("/room/add")
 	@ResponseBody
 	public Response addRoom(@RequestBody RoomAddRequest request) throws InterruptedException {
+        handleAuthentication();
+
 		log.info("/room/add {}", request);
-
 		jdbc.update("INSERT INTO rooms (name) VALUES (?)", request.getName());
-
 		return new Response("Room created: " + request.getName());
 	}
 
     @GetMapping("/room")
     @ResponseBody
     public List<Room> getRooms(int limit) {
-        log.info("/user");
+	    handleAuthentication();
+
+        log.info("/room");
+        return jdbc.query("SELECT *  FROM rooms " +
+                "LIMIT ?", new BeanPropertyRowMapper(Room.class), limit);
+    }
+
+    @GetMapping("/room/popular")
+    @ResponseBody
+    public List<Room> getMostPopularRooms(int limit) {
+        handleAuthentication();
+
+        log.info("/room/popular");
+        // TODO change SQL
+        return jdbc.query("SELECT *  FROM rooms " +
+                "LIMIT ?", new BeanPropertyRowMapper(Room.class), limit);
+    }
+
+    @GetMapping("/room/recent")
+    @ResponseBody
+    public List<Room> getRecentlyCommentedRooms(int limit) {
+        handleAuthentication();
+
+        log.info("/room/recent");
+        // TODO change SQL
         return jdbc.query("SELECT *  FROM rooms " +
                 "LIMIT ?", new BeanPropertyRowMapper(Room.class), limit);
     }
@@ -111,22 +158,23 @@ public class DemoChatApplication {
 	@PostMapping("/message/add")
 	@ResponseBody
 	public Response addMessage(@RequestBody MessageAddRequest request) throws InterruptedException {
-		log.info("/message/add {}", request);
-		if (request.getDelay() > 0) {
-			Thread.sleep(request.getDelay());
-		}
+	    handleAuthentication();
 
+		log.info("/message/add {}", request);
+		handleDelay(request.getDelay());
+		// TODO try using cache
 		int userId = jdbc.queryForObject("SELECT id FROM users WHERE login=?", Integer.class, request.getUser());
 		int roomId = jdbc.queryForObject("SELECT id FROM rooms WHERE name=?", Integer.class, request.getRoom());
 
 		jdbc.update("INSERT INTO messages (user_id, room_id, text, time) VALUES (?, ?, ?, now())", userId, roomId, request.getMessage());
-
 		return new Response("Message created: " + request.getMessage());
 	}
 
-	@GetMapping("/message/get")
+	@GetMapping("/message")
 	@ResponseBody
 	public List<Message> getMessages(@RequestParam String room, @RequestParam int limit) throws InterruptedException {
+	    handleAuthentication();
+
 		log.info("/message/get room={} limit={}", room, limit);
 
 		List<Message> result = jdbc.query("SELECT m.text AS text, m.time AS time, r.name AS room, u.login AS user FROM messages m " +
@@ -142,14 +190,14 @@ public class DemoChatApplication {
 	@GetMapping("/message/last/get")
 	@ResponseBody
 	public List<Message> getLastMessages(@RequestParam int limit) throws InterruptedException {
-		log.info("/message/get limit={}", limit);
+        handleAuthentication();
 
+		log.info("/message/get limit={}", limit);
 		List<Message> result = jdbc.query("SELECT m.text AS text, m.time AS time, r.name AS room, u.login AS user FROM messages m " +
 				"LEFT JOIN rooms r ON m.room_id = r.id " +
 				"LEFT JOIN users u ON m.user_id = u.id " +
 				"ORDER BY m.time DESC " +
 				"LIMIT ?", new BeanPropertyRowMapper(Message.class), limit);
-
 		return result;
 	}
 
@@ -160,31 +208,29 @@ public class DemoChatApplication {
 	}
 
     @Bean
-    public DataSource ds(@Value("${max.pool.size:10}") int maxPoolSize) {
-        MysqlDataSource ds = new MysqlDataSource();
-        ds.setAutoReconnect(true);
-        ds.setCreateDatabaseIfNotExist(true);
-        ds.setDatabaseName("performance");
-        ds.setUser("root");
-        ds.setPassword("root");
-
+    @Primary
+    public DataSource ds(@Value("${db.max.pool.size:10}") int maxPoolSize, @Autowired MysqlDataSource ds) {
         HikariConfig config = new HikariConfig();
         config.setDataSource(ds);
         config.setConnectionTimeout(10_000);
         config.setMaximumPoolSize(maxPoolSize);
         config.setPoolName("hikari");
-
         return new HikariDataSource(config);
     }
 
-//	@Bean
-//	public DataSource ds() {
-//		MysqlDataSource ds = new MysqlDataSource();
-//		ds.setAutoReconnect(true);
-//		ds.setCreateDatabaseIfNotExist(true);
-//		ds.setDatabaseName("performance");
-//		ds.setUser("root");
-//		ds.setPassword("root");
-//		return ds;
-//	}
+	@Bean
+	public MysqlDataSource ds(
+            @Value("${db.host:localhost}") String host,
+	        @Value("${db.schema:chat}") String schema,
+            @Value("${db.username:username}") String username,
+            @Value("${db.password:password}") String password) {
+		MysqlDataSource ds = new MysqlDataSource();
+		ds.setAutoReconnect(true);
+		ds.setCreateDatabaseIfNotExist(true);
+		ds.setServerName(host);
+		ds.setDatabaseName(schema);
+		ds.setUser(username);
+		ds.setPassword(password);
+		return ds;
+	}
 }
