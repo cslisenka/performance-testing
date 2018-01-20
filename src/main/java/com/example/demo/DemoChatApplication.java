@@ -54,8 +54,6 @@ public class DemoChatApplication {
 
     @GetMapping("/dummy")
     public Response dummyGet(@RequestParam String request, @RequestParam int delay) throws InterruptedException {
-        handleAuthentication();
-
         log.debug("/dummy {}", request);
         handleDelay(delay);
         return new Response("Response: " + request);// + " (" + session.getId() + ", " + session.getCreationTime() + ")");
@@ -63,8 +61,6 @@ public class DemoChatApplication {
 
 	@PostMapping("/dummy")
 	public Response dummyPost(@RequestBody String request, @RequestParam int delay, @RequestParam int responseSize) throws InterruptedException {
-        handleAuthentication();
-
         log.debug("/dummy {}", request);
         handleDelay(delay);
 
