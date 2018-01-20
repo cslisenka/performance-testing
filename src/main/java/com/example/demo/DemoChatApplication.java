@@ -1,29 +1,19 @@
 package com.example.demo;
 
 import com.example.demo.dto.*;
-import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import de.codecentric.boot.admin.config.EnableAdminServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
-import javax.sql.DataSource;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.List;
 
 @EnableAdminServer
@@ -199,38 +189,5 @@ public class DemoChatApplication {
 				"ORDER BY m.time DESC " +
 				"LIMIT ?", new BeanPropertyRowMapper(Message.class), limit);
 		return result;
-	}
-
-	@Autowired
-	@Bean
-	public JdbcTemplate jdbc(DataSource ds) {
-		return new JdbcTemplate(ds);
-	}
-
-    @Bean
-    @Primary
-    public DataSource ds(@Value("${db.max.pool.size:10}") int maxPoolSize, @Autowired MysqlDataSource ds) {
-        HikariConfig config = new HikariConfig();
-        config.setDataSource(ds);
-        config.setConnectionTimeout(10_000);
-        config.setMaximumPoolSize(maxPoolSize);
-        config.setPoolName("hikari");
-        return new HikariDataSource(config);
-    }
-
-	@Bean
-	public MysqlDataSource ds(
-            @Value("${db.host:localhost}") String host,
-	        @Value("${db.schema:chat}") String schema,
-            @Value("${db.username:username}") String username,
-            @Value("${db.password:password}") String password) {
-		MysqlDataSource ds = new MysqlDataSource();
-		ds.setAutoReconnect(true);
-		ds.setCreateDatabaseIfNotExist(true);
-		ds.setServerName(host);
-		ds.setDatabaseName(schema);
-		ds.setUser(username);
-		ds.setPassword(password);
-		return ds;
 	}
 }
